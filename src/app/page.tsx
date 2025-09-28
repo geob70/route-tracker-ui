@@ -1,103 +1,147 @@
-import Image from "next/image";
+"use client";
+
+import AddressAutoComplete from "@/components/AddressAutoComplete";
+import JsonViewer from "@/components/JsonViewer";
+import useCalculateRouteHook, { Payload } from "@/hooks/useCalculateRouteHook";
+import { useState } from "react";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [originCoords, setOriginCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [originAddress, setOriginAddress] = useState("");
+  const [destCoords, setDestCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [destAddress, setDestAddress] = useState("");
+  const [routes, setRoutes] = useState<Payload[]>([]);
+  const [threshold, setThreshold] = useState<number>(0);
+  const [recipient, setRecipient] = useState<string>("");
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
+  const { onCalculateRoute } = useCalculateRouteHook();
+
+  const addRoute = () => {
+    if (originCoords && destCoords) {
+      const newRoute: Payload = {
+        origin: [originCoords.lat, originCoords.lng],
+        destination: [destCoords.lat, destCoords.lng],
+        threshold,
+        recipient,
+      };
+      setRoutes((prev) => [...prev, newRoute]);
+      // reset fields
+      setOriginCoords(null);
+      setOriginAddress("");
+      setDestCoords(null);
+      setDestAddress("");
+      setThreshold(0);
+      setRecipient("");
+    } else {
+      alert("Please select both origin and destination.");
+    }
+  };
+
+  const handleCalculateRoute = () => {
+    if (routes.length > 0) {
+      onCalculateRoute(routes);
+    } else {
+      alert("Please add at least one route.");
+    }
+  };
+
+  return (
+    <div className="flex w-full min-h-screen">
+      <main className="max-w-xl py-10 px-4 bg-white shadow-md rounded-lg m-10 flex-1">
+        <h1 className="text-2xl font-bold mb-8 text-center">
+          🚚 Route Planner
+        </h1>
+
+        <div>
+          <AddressAutoComplete
+            label="Origin"
+            onCoordinatesSelected={(coords, address) => {
+              setOriginCoords(coords);
+              setOriginAddress(address);
+            }}
+          />
+
+          <AddressAutoComplete
+            label="Destination"
+            onCoordinatesSelected={(coords, address) => {
+              setDestCoords(coords);
+              setDestAddress(address);
+            }}
+          />
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Delay Threshold (minutes):
+            </label>
+            <input
+              type="number"
+              value={threshold}
+              onChange={(e) => setThreshold(Number(e.target.value))}
+              placeholder="Enter delay threshold in minutes"
+              className="w-full p-2 border border-gray-300 rounded-lg"
             />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </div>
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Recipient Email:
+            </label>
+            <input
+              type="email"
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              placeholder="Enter recipient email"
+              className="w-full p-2 border border-gray-300 rounded-lg"
+            />
+          </div>
+          <button
+            className="mb-4 w-full bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition"
+            onClick={addRoute}
           >
-            Read our docs
-          </a>
+            Add Route
+          </button>
+          <button
+            className="mt-4 w-full bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700 transition"
+            onClick={handleCalculateRoute}
+          >
+            Calculate Route
+          </button>
+        </div>
+
+        <div className="mt-6 space-y-4 text-sm text-gray-700">
+          {originCoords && (
+            <div>
+              <strong>Origin:</strong> {originAddress} <br />
+              <strong>Lat:</strong> {originCoords.lat}, <strong>Lng:</strong>{" "}
+              {originCoords.lng}
+            </div>
+          )}
+          {destCoords && (
+            <div>
+              <strong>Destination:</strong> {destAddress} <br />
+              <strong>Lat:</strong> {destCoords.lat}, <strong>Lng:</strong>{" "}
+              {destCoords.lng}
+            </div>
+          )}
         </div>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+      <div className="w-1/3 p-4 bg-gray-50 border-l overflow-y-hidden overscroll-y-auto m-10 rounded-lg">
+        <h2 className="text-lg font-semibold mb-4 text-center">Route Data</h2>
+        {routes.length === 0 ? (
+          <p className="text-sm text-gray-500 text-center">
+            No routes calculated yet.
+          </p>
+        ) : (
+          routes.map((route, index) => (
+            <JsonViewer key={index} data={route} title={`Route ${index + 1}`} />
+          ))
+        )}
+      </div>
     </div>
   );
 }
